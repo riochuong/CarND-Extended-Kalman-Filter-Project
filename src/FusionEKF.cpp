@@ -40,12 +40,12 @@ FusionEKF::FusionEKF() {
   P_ << 1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1000, 0,
-	0, 0, 0, 1000;
+        0, 0, 0, 1000;
   MatrixXd F_ = MatrixXd(4,4);
   F_ << 1, 0, 1, 0,
-	0, 1, 0, 1,
-	0, 0, 1, 0,
-	0, 0, 0, 1;
+	    0, 1, 0, 1,
+    	0, 0, 1, 0,
+	    0, 0, 0, 1;
   VectorXd x_in = VectorXd(4);
   MatrixXd q_in = MatrixXd(4,4); 
   ekf_ = KalmanFilter();
@@ -93,11 +93,11 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       Initialize state.
       */
       ekf_.x_ << measurement_pack.raw_measurements_(0),  measurement_pack.raw_measurements_(1), 
-		 measurement_pack.raw_measurements_(2),  measurement_pack.raw_measurements_(3); 
+    		     0, 0; 
     
    }
 
-
+    previous_timestamp_ = measurement_pack.timestamp_;
     // done initializing, no need to predict or update
     is_initialized_ = true;
     return;
@@ -114,6 +114,18 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
      * Update the process noise covariance matrix.
      * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
    */
+  // convert timestamp to seconds
+  float noise_ax = 9.0;
+  float noise_ay = 9.0
+  float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
+  ekf_.F_ << 1, 0, dt, 0,
+             0, 1, 0, dt,
+             0, 0, 1, 0,
+             0, 0, 0, 1;
+  ekf_.Q_ << pow(dt, 4) / 4 * noise_ax, 0, pow(dt,3) / 2 * noise_ax,
+             0, pow(dt,4)/4 noise_ay, 0, pow(dt,3)/2 * noise_ay,
+             pow(dt, 3)/2 *noise_ax, 0, pow(dt, 2) * noise_ax, 0,
+             0, pow(dt, 3)/2 * noise_ay;
 
   ekf_.Predict();
 
