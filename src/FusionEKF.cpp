@@ -24,26 +24,45 @@ FusionEKF::FusionEKF() {
 
   //measurement covariance matrix - laser
   R_laser_ << 0.0225, 0,
-        0, 0.0225;
+              0, 0.0225;
 
   //measurement covariance matrix - radar
   R_radar_ << 0.09, 0, 0,
-        0, 0.0009, 0,
-        0, 0, 0.09;
+              0, 0.0009, 0,
+              0, 0, 0.09;
 
   /**
   TODO:
     * Finish initializing the FusionEKF.
     * Set the process and measurement noises
   */
-
-
+  MatrixXd P_ = MatrixXd(4,4);
+  P_ << 1, 0, 0, 0,
+        0, 1, 0, 0,
+        0, 0, 1000, 0,
+	0, 0, 0, 1000;
+  MatrixXd F_ = MatrixXd(4,4);
+  F_ << 1, 0, 1, 0,
+	0, 1, 0, 1,
+	0, 0, 1, 0,
+	0, 0, 0, 1;
+  VectorXd x_in = VectorXd(4);
+  MatrixXd q_in = MatrixXd(4,4); 
+  ekf_ = KalmanFilter();
+  ekf_.Init(x_in, P_, F_, H_laser_, R_laser_, q_in);
 }
 
 /**
 * Destructor.
 */
 FusionEKF::~FusionEKF() {}
+
+void convertPolarToCartesian(const VectorXd &pack, VectorXd &x) {
+   float rho = pack(0);
+   float bearing = pack(1);
+   float rho_dot = pack(2);
+   x << rho * cos(bearing), rho * sin(bearing) * (-1), rho_dot * cos(bearing), rho_dot * sin(bearing) * (-1);  	
+}
 
 void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
@@ -67,12 +86,17 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       /**
       Convert radar from polar to cartesian coordinates and initialize state.
       */
+      convertPolarToCartesian(measurement_pack.raw_measurements_, ekf_.x_);
     }
     else if (measurement_pack.sensor_type_ == MeasurementPackage::LASER) {
       /**
       Initialize state.
       */
-    }
+      ekf_.x_ << measurement_pack.raw_measurements_(0),  measurement_pack.raw_measurements_(1), 
+		 measurement_pack.raw_measurements_(2),  measurement_pack.raw_measurements_(3); 
+    
+   }
+
 
     // done initializing, no need to predict or update
     is_initialized_ = true;
