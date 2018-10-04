@@ -47,7 +47,7 @@ static void convertPolarToCartesian(const VectorXd &pack, VectorXd &x) {
    float rho = pack(0);
    float bearing = pack(1);
    float rho_dot = pack(2);
-   x << rho * cos(bearing), rho * sin(bearing) * (-1), rho_dot * cos(bearing), rho_dot * sin(bearing) * (-1);  	
+   x << rho * cos(bearing), rho * sin(bearing), rho_dot * cos(bearing), rho_dot * sin(bearing);  	
 }
 
 
