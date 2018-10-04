@@ -46,6 +46,8 @@ FusionEKF::FusionEKF() {
 	    0, 1, 0, 1,
     	0, 0, 1, 0,
 	    0, 0, 0, 1;
+  H_laser_ <<  1, 0, 0, 0,
+             0, 1, 0, 0;
   VectorXd x_in = VectorXd(4);
   MatrixXd q_in = MatrixXd(4,4); 
   ekf_ = KalmanFilter();
@@ -57,7 +59,7 @@ FusionEKF::FusionEKF() {
 */
 FusionEKF::~FusionEKF() {}
 
-void convertPolarToCartesian(const VectorXd &pack, VectorXd &x) {
+static void convertPolarToCartesian(const VectorXd &pack, VectorXd &x) {
    float rho = pack(0);
    float bearing = pack(1);
    float rho_dot = pack(2);
@@ -116,16 +118,16 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
    */
   // convert timestamp to seconds
   float noise_ax = 9.0;
-  float noise_ay = 9.0
+  float noise_ay = 9.0;
   float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
   ekf_.F_ << 1, 0, dt, 0,
              0, 1, 0, dt,
              0, 0, 1, 0,
              0, 0, 0, 1;
-  ekf_.Q_ << pow(dt, 4) / 4 * noise_ax, 0, pow(dt,3) / 2 * noise_ax,
-             0, pow(dt,4)/4 noise_ay, 0, pow(dt,3)/2 * noise_ay,
+  ekf_.Q_ << pow(dt, 4) / 4 * noise_ax, 0, pow(dt,3) / 2 * noise_ax, 0,
+             0, pow(dt,4)/4 * noise_ay, 0, pow(dt,3)/2 * noise_ay,
              pow(dt, 3)/2 *noise_ax, 0, pow(dt, 2) * noise_ax, 0,
-             0, pow(dt, 3)/2 * noise_ay;
+             0, pow(dt, 3)/2 * noise_ay, 0, pow(dt, 2)*noise_ay;
 
   ekf_.Predict();
 
@@ -141,11 +143,22 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
 
   if (measurement_pack.sensor_type_ == MeasurementPackage::RADAR) {
     // Radar updates
+    ekf_.R_ = R_radar_;
+    ekf_.H_ = Hj_;
+    ekf_.UpdateEKF(measurement_pack.raw_measurements_);
+    Hj_ = ekf_.H_;
+    R_radar_ = ekf_.R_;
   } else {
     // Laser updates
+    ekf_.R_ = R_laser_;
+    ekf_.H_ = H_laser_;
+    ekf_.Update(measurement_pack.raw_measurements_);
+    R_laser_ = ekf_.R_;
+    H_laser_ = ekf_.H_;
   }
 
   // print the output
   cout << "x_ = " << ekf_.x_ << endl;
   cout << "P_ = " << ekf_.P_ << endl;
+  previous_timestamp_ = measurement_pack.timestamp_;
 }

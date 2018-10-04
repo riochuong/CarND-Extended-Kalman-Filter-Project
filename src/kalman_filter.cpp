@@ -25,8 +25,8 @@ void KalmanFilter::Predict() {
   TODO:
     * predict the state
   */
-  x_ = F * x;
-  P_ = F_*P_*F.transpose() + Q_;
+  x_ = F_ * x_;
+  P_ = F_*P_*F_.transpose() + Q_;
 }
 
 void KalmanFilter::Update(const VectorXd &z) {
@@ -34,12 +34,56 @@ void KalmanFilter::Update(const VectorXd &z) {
   TODO:
     * update the state by using Kalman Filter equations
   */
-  MatrixXd y = z - H_ * x_;
+  VectorXd y = z - H_ * x_;
+  MatrixXd S = H_ * P_ * H_.transpose() + R_;
+  MatrixXd K = P_ * H_.transpose() * S.inverse();
+  x_ = x_ + K*y;
+  long x_size = x_.size();
+  MatrixXd I = MatrixXd::Identity(x_size, x_size);
+  P_ = (I - K*H_) * P_;
 }
+
+static void convertPolarToCartesian(const VectorXd &pack, VectorXd &x) {
+   float rho = pack(0);
+   float bearing = pack(1);
+   float rho_dot = pack(2);
+   x << rho * cos(bearing), rho * sin(bearing) * (-1), rho_dot * cos(bearing), rho_dot * sin(bearing) * (-1);  	
+}
+
 
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
   /**
   TODO:
     * update the state by using Extended Kalman Filter equations
   */
+  VectorXd x_new(4);
+  convertPolarToCartesian(z, x_new);
+  float px = x_new(0);
+  float py  = x_new(1);
+  float vx  = x_new(2);
+  float vy  = x_new(3);
+  H_ << px / sqrt(px*px + py*py), py / sqrt(px*px + py*py), 0, 0,
+        (-1) * py/ (px*px + py*py), px / (px*px + py*py), 0, 0,
+        py*(vx*py - vy*px) / pow((px*px + py*py), 1.5), px*(vy*px - vx*py)/ pow((px*px + py*py),1.5),
+        px / sqrt(px*px + py*py), py / sqrt(px*px + py*py);
+  VectorXd h_x (3);
+  h_x << sqrt(px*px + py*py), atan2(py,px), (px*vx + py*vy)/sqrt(px*px + py*py);
+  VectorXd y = z - h_x;
+  // adjust phi here so it will be between -pi and pi
+  if (y(1) > M_PI) { y(1) = (-1) * (2 * M_PI - y(1));}
+  if (y(1) < (-1) * M_PI) { y(1) = 2*M_PI - (-1)*y(1);}
+  
+  MatrixXd S = H_ * P_ * H_.transpose() + R_;
+  MatrixXd K = P_ * H_.transpose() * S.inverse();
+  x_ = x_ + K*y;
+  long x_size = x_.size();
+  MatrixXd I = MatrixXd::Identity(x_size, x_size);
+  P_ = (I - K*H_) * P_;
 }
+
+
+
+
+
+
+
