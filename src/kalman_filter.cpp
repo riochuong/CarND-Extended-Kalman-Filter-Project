@@ -43,14 +43,6 @@ void KalmanFilter::Update(const VectorXd &z) {
   P_ = (I - K*H_) * P_;
 }
 
-static void convertPolarToCartesian(const VectorXd &pack, VectorXd &x) {
-   float rho = pack(0);
-   float bearing = pack(1);
-   float rho_dot = pack(2);
-   x << rho * cos(bearing), rho * sin(bearing), rho_dot * cos(bearing), rho_dot * sin(bearing); 
-}
-
-
 void KalmanFilter::UpdateEKF(const VectorXd &z) {
   /**
   TODO:
