@@ -40,14 +40,14 @@ FusionEKF::FusionEKF() {
   P_ << 1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1000, 0,
-        0, 0, 0, 1000;
+        0, 0, 0, 5000;
   MatrixXd F_ = MatrixXd(4,4);
   F_ << 1, 0, 1, 0,
 	    0, 1, 0, 1,
     	0, 0, 1, 0,
 	    0, 0, 0, 1;
   H_laser_ <<  1, 0, 0, 0,
-             0, 1, 0, 0;
+               0, 1, 0, 0;
   VectorXd x_in = VectorXd(4);
   MatrixXd q_in = MatrixXd(4,4); 
   ekf_ = KalmanFilter();
@@ -63,7 +63,7 @@ static void convertPolarToCartesian(const VectorXd &pack, VectorXd &x) {
    float rho = pack(0);
    float bearing = pack(1);
    float rho_dot = pack(2);
-   x << rho * cos(bearing), rho * sin(bearing) , rho_dot * cos(bearing), rho_dot * sin(bearing);  	
+   x << rho * cos(bearing), rho * sin(bearing), rho_dot * cos(bearing), rho_dot * sin(bearing);  	
 }
 
 void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
@@ -95,7 +95,7 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
       Initialize state.
       */
       ekf_.x_ << measurement_pack.raw_measurements_(0),  measurement_pack.raw_measurements_(1), 
-    		     0, 0; 
+    		     2, 2; 
     
    }
 
@@ -117,8 +117,8 @@ void FusionEKF::ProcessMeasurement(const MeasurementPackage &measurement_pack) {
      * Use noise_ax = 9 and noise_ay = 9 for your Q matrix.
    */
   // convert timestamp to seconds
-  float noise_ax = 9.0;
-  float noise_ay = 9.0;
+  float noise_ax =  7; //1000.0;
+  float noise_ay = 5; //200.0;
   float dt = (measurement_pack.timestamp_ - previous_timestamp_) / 1000000.0;
   ekf_.F_ << 1, 0, dt, 0,
              0, 1, 0, dt,

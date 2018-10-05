@@ -47,7 +47,7 @@ static void convertPolarToCartesian(const VectorXd &pack, VectorXd &x) {
    float rho = pack(0);
    float bearing = pack(1);
    float rho_dot = pack(2);
-   x << rho * cos(bearing), rho * sin(bearing), rho_dot * cos(bearing), rho_dot * sin(bearing);  	
+   x << rho * cos(bearing), rho * sin(bearing), rho_dot * cos(bearing), rho_dot * sin(bearing); 
 }
 
 
@@ -56,12 +56,10 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   TODO:
     * update the state by using Extended Kalman Filter equations
   */
-  VectorXd x_new(4);
-  convertPolarToCartesian(z, x_new);
-  float px = x_new(0);
-  float py  = x_new(1);
-  float vx  = x_new(2);
-  float vy  = x_new(3);
+  float px = x_(0);
+  float py  = x_(1);
+  float vx  = x_(2);
+  float vy  = x_(3);
   H_ << px / sqrt(px*px + py*py), py / sqrt(px*px + py*py), 0, 0,
         (-1) * py/ (px*px + py*py), px / (px*px + py*py), 0, 0,
         py*(vx*py - vy*px) / pow((px*px + py*py), 1.5), px*(vy*px - vx*py)/ pow((px*px + py*py),1.5),
